@@ -1,0 +1,4 @@
+(library
+ (name lib)
+ (libraries ppx_deriving flow_parser)
+ (preprocess (pps ppx_deriving.show)))

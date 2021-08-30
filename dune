@@ -1,2 +1,8 @@
 (executable
- (name strazh))
+ (name strazh)
+ (libraries ppx_deriving flow_parser lib)
+ (preprocess (pps ppx_deriving.show)))
+
+(env
+ (dev
+  (flags (:standard -w -58) (:standard -warn-error -A))))
