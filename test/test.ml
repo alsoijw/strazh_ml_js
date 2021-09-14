@@ -2,7 +2,7 @@ open Helpers
 open Lib.Value
 open Lib
 
-let assignment_1() = 
+let assignment_1() =
   let v2v = setup None
       (fun v2v -> 
          value_new v2v Value [] |> V2v.set v2v "b") in
@@ -10,7 +10,7 @@ let assignment_1() =
     "a = b";
   Alcotest.(check bool) "" ((V2v.find v2v "a") == (V2v.find v2v "b")) true
 
-let assignment_2() = 
+let assignment_2() =
   let v2v = setup None
       (fun v2v ->
          let t = value_new v2v Value [] in
@@ -21,7 +21,7 @@ let assignment_2() =
     "a = c";
   Alcotest.(check bool) "" ((V2v.find v2v "a") != (V2v.find v2v "b")) true
 
-let raw_values_1() = 
+let raw_values_1() =
   let v2v = test_func() in
   try_test v2v 0
     "d = a = raw_data()";
@@ -32,12 +32,12 @@ let raw_values_1() =
      | _ -> false)
     true
 
-let raw_values_2() = 
+let raw_values_2() =
   let v2v = test_func() in
-  try_test v2v 1
+  try_test v2v 0
     "a = db_query(raw_data())";
   let a = V2v.find v2v "a" in
-  let f = 
+  let f =
     (match a.kind with
      | Db ->
        List.length a.bases_on == 1 && (
@@ -50,4 +50,102 @@ let raw_values_2() =
   in
   Alcotest.(check bool) "" f
     true
+
+let if_0() =
+  let v2v1 = test_func() in
+  try_test v2v1 0
+    "if(raw_data())
+       a = raw_data()
+     else
+       a = safe_data()
+     a = db_query(a)";
+  let v2v2 = test_func() in
+  try_test v2v2 0
+    "if(raw_data())
+       a = safe_data()
+     else
+       a = raw_data()
+     a = db_query(a)";
+  let f =
+    List.for_all2 (=) v2v1.corrupted [ V2v.find v2v1 "a" ]
+    && List.for_all2 (=) v2v2.corrupted [ V2v.find v2v2 "a" ] in
+  Alcotest.(check bool) "" f true
+
+let if_1() =
+  let v2v = test_if() in
+  try_test v2v 0
+    "a = _()
+     if(b)
+       a = _()";
+  let r = numb2list v2v in
+  Alcotest.(check bool) "" (List.for_all2 (=) r [ 1; 0 ]) true
+
+let if_2() =
+  let v2v = test_if() in
+  try_test v2v 0
+    "a = _()
+     if(a = _())
+       _()";
+  let r = numb2list v2v in
+  Alcotest.(check bool) "" (List.for_all2 (=) r [ 1 ]) true
+
+let if_3() =
+  let v2v = test_if() in
+  try_test v2v 0
+    "a = _()
+     if(a = _())
+       a = _()";
+  let r = numb2list v2v in
+  Alcotest.(check bool) "" (List.for_all2 (=) r [ 2; 1 ]) true
+
+let if_4() =
+  let v2v = test_if() in
+  try_test v2v 0
+    "a = _()
+     if(a = _())
+       a = _()
+     else
+       a = _()";
+  let r = numb2list v2v in
+  Alcotest.(check bool) "" (List.for_all2 (=) r [ 2; 3 ]) true
+
+let if_5() =
+  let v2v = test_if() in
+  try_test v2v 0
+    "a = _()
+     if(a = _())
+       a = _()
+     else if(_())
+       a = _()";
+  let r = numb2list v2v in
+  Alcotest.(check bool) "" (List.for_all2 (=) r [ 2; 4; 1 ]) true
+
+let if_6() =
+  let v2v = test_if() in
+  try_test v2v 0
+    "a = _()
+     if(a = _())
+       a = _()
+     else if(a = _())
+       a = _()
+     else
+       a = _();";
+  let r = numb2list v2v in
+  Alcotest.(check bool) "" (List.for_all2 (=) r [ 2; 4; 5 ]) true
+
+let if_7() =
+  let v2v = test_if() in
+  try_test v2v 0
+    "a = _()
+     if(_()) {
+       if(a = _()) {
+         a = _()
+       } else {
+         a = _()
+       }
+     } else {
+       _()
+     }";
+  let r = numb2list v2v in
+  Alcotest.(check bool) "" (List.for_all2 (=) r [ 3; 4; 0 ]) true
 

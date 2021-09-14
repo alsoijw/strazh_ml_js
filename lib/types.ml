@@ -11,6 +11,8 @@ and val_type =
     Value
   | Callable of callable
   | Raw | Db
+  | Numbered of int
+  | Union
 and value = {
   id : int;
   kind : val_type;
@@ -18,6 +20,7 @@ and value = {
 }
 and variable2value = {
   variables : (string, value) Hashtbl.t;
+  parrent : variable2value option;
   mutable corrupted : value list
 }
 [@@deriving show]
