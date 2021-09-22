@@ -4,12 +4,7 @@ open Lib.Types
 open Lib
 
 let try_test v2v debug code =
-  let aw = ast_walk (debug > 1) v2v in
-
-  if debug > 0 then Types.show_variable2value v2v |> print_endline;
-  parse code |> List.iter aw;
-  if debug > 0 then Types.show_variable2value v2v |> print_endline;
-  ()
+  parse code |> ast_walk1 debug v2v
 
 let setup var2val func =
   let v2v = match var2val with

@@ -149,3 +149,102 @@ let if_7() =
   let r = numb2list v2v in
   Alcotest.(check bool) "" (List.for_all2 (=) r [ 3; 4; 0 ]) true
 
+let function_1() =
+  let v2v = test_func() in
+  try_test v2v 0
+    "b = a(raw_data())
+
+     function a(b) {
+       return db_query(b);
+     }";
+  let b = (V2v.find v2v "b").bases_on in
+  let r = List.for_all2 (=) b v2v.corrupted &&
+          List.length b = 1 in
+  Alcotest.(check bool) "" r true
+
+let function_2() =
+  let v2v = test_if() in
+  try_test v2v 0
+    "a = c()
+
+     function c() {
+       if(b)
+         return _()
+       else
+         return _()
+     }";
+  let r = numb2list v2v in
+  Alcotest.(check bool) "" (List.for_all2 (=) r [ 0; 1 ]) true
+
+let function_3() =
+  let v2v = test_if() in
+  try_test v2v 0
+    "a = b()
+
+     function b() {
+       function c() {
+         return _();
+       }
+       return c();
+     }";
+  let r = numb2list v2v in
+  Alcotest.(check bool) "" (List.for_all2 (=) r [ 0 ]) true
+
+let function_4() =
+  let v2v = test_if() in
+  try_test v2v 0
+    "a = b()
+
+     function b() {
+       function c() {
+         return _();
+       }
+       c();
+       return c();
+     }";
+  let r = numb2list v2v in
+  Alcotest.(check bool) "" (List.for_all2 (=) r [ 1 ]) true
+
+let function_5() =
+  let v2v = test_if() in
+  try_test v2v 0
+    "a = c()
+
+     function c() {
+       if(b) {
+          return _();
+       } else if(b) {
+          return _();
+       } else {
+          return _();
+       }
+       return _();
+     }";
+  let r = numb2list v2v in
+  Alcotest.(check bool) "" (List.for_all2 (=) r [ 0; 1; 2 ]) true
+
+let function_6() =
+  let v2v = test_if() in
+  try_test v2v 0
+    "a = b()
+
+     function b() {
+       return _();
+       return _();
+     }";
+  let r = numb2list v2v in
+  Alcotest.(check bool) "" (List.for_all2 (=) r [ 0 ]) true
+
+let function_7() =
+  let v2v = test_if() in
+  try_test v2v 0
+    "a = b()
+
+     function b() {
+       {
+         return _();
+       }
+       return _();
+     }";
+  let r = numb2list v2v in
+  Alcotest.(check bool) "" (List.for_all2 (=) r [ 0 ]) true

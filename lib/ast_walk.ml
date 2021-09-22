@@ -76,23 +76,61 @@ and ast2val1 v2v a =
   | Flow_ast.Expression.Expression b -> ast2val v2v (snd b)
   | _ -> Error Undef
 
-let rec ast_walk debug v2v a =
+let rec def_func v2v a =
+  let b = snd a in
+  match b with
+  | Flow_ast.Statement.FunctionDeclaration d -> (
+      match d.id with
+      | Some name ->
+        let vn vtype v2v a = Value.value_new v2v vtype a in
+        let func_new f =
+          Value.value_new v2v (Callable f) [] in
+        let run_func v2v args =
+          let original = v2v in
+          let v2v = V2v.wrap v2v () in
+
+          List.iteri (fun n i -> 
+              let open Flow_ast.Function.Param in
+              match (snd i).argument |> snd with
+              | Flow_ast.Pattern.Identifier i ->
+                (match List.nth_opt args n with
+                 | Some v -> v
+                 | None -> vn Value v2v [])
+                |> V2v.set v2v (snd i.name).name;
+              | _ -> ()
+            ) (snd d.params).params;
+
+          (match d.body with
+           | Flow_ast.Function.BodyBlock b ->
+             ast_walk1 0 v2v (snd b).body
+           | _ -> ());
+
+          original.corrupted <- List.append original.corrupted v2v.corrupted;
+          Value.value_new v2v Types.Union v2v.return in
+          V2v.set v2v (snd name).name (func_new run_func);
+      | None -> ()
+    )
+  | _ -> ()
+
+and ast_walk debug v2v a =
   let aw = ast_walk false in
   let b = snd a in
   if debug then Flow_ast.Statement.show_t' Loc.pp Loc.pp b |> print_endline;
   match b with
-  | Flow_ast.Statement.Expression c -> let _ = ast2val v2v (snd c.expression) in ()
+  | Flow_ast.Statement.Expression c -> let _ = ast2val v2v (snd c.expression) in true
   | Flow_ast.Statement.If c ->
     let true_ = V2v.wrap v2v () in
     let else_ = V2v.wrap v2v () in
     let _ = ast2val true_ @@ snd c.test in ();
 
     Hashtbl.iter (fun k v -> V2v.set else_ k v) true_.variables;
-    aw true_ c.consequent;
+    let _ = aw true_ c.consequent in ();
 
     (match c.alternate with
-     | Some i -> aw else_ (snd i).body;
+     | Some i -> let _ = aw else_ (snd i).body in ();
      | None -> ());
+
+    v2v.return <- List.append true_.return else_.return;
 
     let key2list = fun k _ acc -> k :: acc in
     Hashtbl.fold key2list true_.variables []
@@ -102,10 +140,36 @@ let rec ast_walk debug v2v a =
         ext [ V2v.find_opt true_ k; V2v.find_opt else_ k ]
         |> uniq
         |> Value.value_new v2v Union  |> V2v.set v2v k);
+    List.length true_.return == 0 && List.length else_.return == 0
 
   | Flow_ast.Statement.Block c ->
-    let aw1 = aw v2v in
-    List.iter aw1 c.body
+    ast_walk1 0 v2v c.body;
+    List.length v2v.return == 0
 
-  | _ -> ();
-    if debug then Types.show_variable2value v2v |> print_endline
+  | Flow_ast.Statement.Return d -> (
+      match d.argument with
+      | Some e -> (
+          match snd e |> ast2val v2v with
+          | Ok value -> v2v.return <- List.append v2v.return [ value ]; false
+          | Error _ -> false
+        )
+      | None -> false
+    )
+
+  | _ -> true;
+
+and ast_walk1 debug v2v ast =
+  let aw = ast_walk (debug > 1) v2v in
+  let df = def_func v2v in
+
+  if debug > 0 then Types.show_variable2value v2v |> print_endline;
+  List.iter df ast;
+  let _ = List.fold_left (fun a i ->
+    if a && (match snd i with
+          | Flow_ast.Statement.Return _ -> let _ = aw i in (); false
+          | _ -> true)
+    then
+      aw i
+    else
+      false) true ast in ();
+  if debug > 0 then Types.show_variable2value v2v |> print_endline;

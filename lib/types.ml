@@ -21,7 +21,8 @@ and value = {
 and variable2value = {
   variables : (string, value) Hashtbl.t;
   parrent : variable2value option;
-  mutable corrupted : value list
+  mutable corrupted : value list;
+  mutable return : value list
 }
 [@@deriving show]
 

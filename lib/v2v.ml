@@ -3,17 +3,21 @@ open Types
 let variable2value_new =
   fun () ->
   let (c : value list) = [] in
+  let (r : value list) = [] in
   { variables = Hashtbl.create 0
   ; parrent = None
   ; corrupted = c
+  ; return = r
   }
 
 let wrap v2v =
   fun () ->
   let (c : value list) = [] in
+  let (r : value list) = [] in
   { variables = Hashtbl.create 0
   ; parrent = Some v2v
   ; corrupted = (v2v.corrupted)
+  ; return = r
   }
 
 let show_v2v0 var2val =
