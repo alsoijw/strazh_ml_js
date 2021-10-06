@@ -19,11 +19,12 @@ let test_func =
   let vn vtype v2v a = value_new v2v vtype a in
   let func_new f =
     value_new v2v (Callable f) [] in
-  func_new @@ vn Raw |> V2v.set v2v "raw_data";
-  func_new @@ vn Value |> V2v.set v2v "safe_data";
-  func_new @@ vn Db |> V2v.set v2v "db_query";
-  func_new @@ vn Value |> V2v.set v2v "_";
-  vn Value v2v [] |> V2v.set v2v "b";
+  let set name value = V2v.set v2v name (Loc.none.start, value) in
+  func_new @@ vn Raw |> set "raw_data";
+  func_new @@ vn Value |> set "safe_data";
+  func_new @@ vn Db |> set "db_query";
+  func_new @@ vn Value |> set "_";
+  vn Value v2v [] |> set "b";
   v2v
 
 let test_if =
@@ -38,9 +39,10 @@ let test_if =
   let vn vtype v2v a = value_new v2v vtype a in
   let func_new f =
     value_new v2v (Callable f) [] in
+  let set name value = V2v.set v2v name (Loc.none.start, value) in
   func_new (fun v2v a -> value_new v2v (Numbered (next_val())) a)
-  |> V2v.set v2v "_";
-  vn Value v2v [] |> V2v.set v2v "b";
+  |> set "_";
+  vn Value v2v [] |> set "b";
   v2v
 
 let numb2list v2v =

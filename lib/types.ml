@@ -19,7 +19,7 @@ and value = {
   bases_on : value list
 }
 and variable2value = {
-  variables : (string, value) Hashtbl.t;
+  variables : (string, Loc.position * value) Hashtbl.t;
   parrent : variable2value option;
   mutable corrupted : value list;
   mutable return : value list

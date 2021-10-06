@@ -1,4 +1,5 @@
 open Types
+open Loc
 
 let parse code =
   (Parser_flow.program code |> fst |> snd).statements
@@ -66,7 +67,7 @@ let rec ast2val v2v e =
       match snd d.left with
       | Flow_ast.Pattern.Identifier e -> (
           match ast2val v2v (snd d.right) with
-          | Ok f -> V2v.set v2v (e.name |> snd).name f; Ok f
+          | Ok f -> V2v.set v2v (e.name |> snd).name ((fst d.left).start, f); Ok f
           | _ -> Error Undef)
       | _ -> Error Undef)
 
@@ -93,9 +94,9 @@ let rec def_func v2v a =
               let open Flow_ast.Function.Param in
               match (snd i).argument |> snd with
               | Flow_ast.Pattern.Identifier i ->
-                (match List.nth_opt args n with
-                 | Some v -> v
-                 | None -> vn Value v2v [])
+                (Loc.none.start, match List.nth_opt args n with
+                  | Some v -> v
+                  | None -> vn Value v2v [])
                 |> V2v.set v2v (snd i.name).name;
               | _ -> ()
             ) (snd d.params).params;
@@ -107,7 +108,7 @@ let rec def_func v2v a =
 
           original.corrupted <- List.append original.corrupted v2v.corrupted;
           Value.value_new v2v Types.Union v2v.return in
-          V2v.set v2v (snd name).name (func_new run_func);
+        V2v.set v2v (snd name).name (Loc.none.start, func_new run_func);
       | None -> ()
     )
   | _ -> ()
@@ -137,9 +138,10 @@ and ast_walk debug v2v a =
     |> Hashtbl.fold key2list else_.variables
     |> uniq
     |> List.iter (fun k ->
-        ext [ V2v.find_opt true_ k; V2v.find_opt else_ k ]
-        |> uniq
-        |> Value.value_new v2v Union  |> V2v.set v2v k);
+        let v =
+          ext [ V2v.find_opt true_ k; V2v.find_opt else_ k ]
+          |> uniq
+          |> Value.value_new v2v Union in V2v.set v2v k ((fst a).start, v));
     List.length true_.return == 0 && List.length else_.return == 0
 
   | Flow_ast.Statement.Block c ->
