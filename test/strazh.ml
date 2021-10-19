@@ -30,4 +30,8 @@ let () =
       test_case "6" `Quick function_6;
       test_case "7" `Quick function_7;
     ];
+    "constrait", [
+      test_case "1" `Quick constrait_1;
+      test_case "2" `Quick constrait_2;
+    ];
   ]

@@ -57,7 +57,7 @@ let rec ast2val v2v e =
               | Callable g -> (
                   let ast2val1_ = ast2val1 v2v in
                   match Array.of_list (snd f.arguments).arguments |> extract ast2val1_ with
-                  | Ok t -> Ok (g v2v (Array.to_list t))
+                  | Ok t -> Ok (g (snd f.arguments).arguments v2v (Array.to_list t))
                   | Error v -> Error v)
               | _ -> Error IsNotCallable)
           | None -> Error Undef)
@@ -86,14 +86,16 @@ let rec def_func v2v a =
         let vn vtype v2v a = Value.value_new v2v vtype a in
         let func_new f =
           Value.value_new v2v (Callable f) [] in
-        let run_func v2v args =
+        let run_func _ v2v args =
           let original = v2v in
           let v2v = V2v.wrap v2v () in
+          let args_names = ref [] in
 
           List.iteri (fun n i -> 
               let open Flow_ast.Function.Param in
               match (snd i).argument |> snd with
               | Flow_ast.Pattern.Identifier i ->
+                args_names := List.append !args_names [ (snd i.name).name ];
                 (Loc.none.start, match List.nth_opt args n with
                   | Some v -> v
                   | None -> vn Value v2v [])
@@ -105,6 +107,22 @@ let rec def_func v2v a =
            | Flow_ast.Function.BodyBlock b ->
              ast_walk1 0 v2v (snd b).body
            | _ -> ());
+
+          Hashtbl.iter (fun n i ->
+              Hashtbl.iter (fun p c ->
+                  let contains =
+                    match Hashtbl.find_opt original.constrait n with
+                    | Some hash ->
+                      Hashtbl.find_all hash p |> List.exists (fun j -> j == c)
+                    | _ -> false in
+                  if not contains then
+                    V2v.constrait_set original n p c
+                ) i
+            ) v2v.constrait;
+
+          Hashtbl.iter (fun n v ->
+              if not @@ List.mem n !args_names then
+                V2v.set ~merge:true original n ((fst a)._end, Value.value_new v2v Types.Union @@ uniq @@ ext [ V2v.find_opt original n; Some (snd v)])) v2v.variables;
 
           original.corrupted <- List.append original.corrupted v2v.corrupted;
           Value.value_new v2v Types.Union v2v.return in

@@ -31,3 +31,12 @@ let value_new =
   if corrupted then 
     v2v.corrupted <- List.append v2v.corrupted [ this ];
   this
+
+let type_blacklist v _type =
+  match v.kind with
+  | Types.Union -> (
+      List.exists (fun a -> a.kind = _type) v.bases_on)
+  | _ -> v.kind = _type
+
+let type_db_blacklist v =
+  type_blacklist v Types.Raw

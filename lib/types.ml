@@ -5,8 +5,7 @@ module Hashtbl = struct
     Hashtbl.iter (fun a b -> Format.fprintf ppf "  @[<1>%a: %a@]@." pp_key a pp_value b) values;
 end
 
-
-type callable = variable2value -> value list -> value
+type callable = (Loc.t, Loc.t) Flow_ast.Expression.expression_or_spread list -> variable2value -> value list -> value
 and val_type =
     Value
   | Callable of callable
@@ -20,8 +19,10 @@ and value = {
 }
 and variable2value = {
   variables : (string, Loc.position * value) Hashtbl.t;
+  constrait : (string, (Loc.position, value -> bool) Hashtbl.t) Hashtbl.t;
   parrent : variable2value option;
   mutable corrupted : value list;
+  mismatches : value Vector.vector;
   mutable return : value list
 }
 [@@deriving show]
