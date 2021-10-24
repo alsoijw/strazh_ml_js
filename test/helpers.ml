@@ -33,7 +33,7 @@ let test_func =
               | _ -> (
                   match List.nth_opt bases_on n with
                   | Some v -> if Value.type_db_blacklist v then
-                      Vector.append v2v.mismatches v
+                      Vector.append v2v.mismatches { value = v; set = (fst exp).start; usage = (fst exp).start }
                   | _ -> ()
                 )
             )
@@ -65,3 +65,9 @@ let numb2list v2v =
   List.map (fun i -> match i.kind with
       | Numbered i -> i
       | _ -> -1)
+
+let mismatch_check ?(extract = false) v2v val_list length =
+  let m = List.map (fun i -> i.value) v2v.mismatches.list in
+  let m = if extract then (List.hd m).bases_on else m in
+  List.for_all2 (=) m val_list &&
+  List.length m == length

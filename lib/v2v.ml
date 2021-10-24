@@ -3,7 +3,7 @@ open Types
 let variable2value_new =
   fun () ->
   let (r : value list) = [] in
-  let (m : value list) = [] in
+  let (m : mismatch list) = [] in
   { variables = Hashtbl.create 0
   ; constrait = Hashtbl.create 0
   ; parrent = None
@@ -29,7 +29,7 @@ let set ?(merge = false) v2v key value =
   List.iter (fun i ->
       Hashtbl.iter (fun k v ->
           let flag = (Loc.pos_cmp k (fst value) > 0 || merge) && v @@ snd value in
-          if flag then snd value |> Vector.append v2v.mismatches
+          if flag then { value = snd value; set = fst value; usage = k } |> Vector.append v2v.mismatches
         ) i) @@ Hashtbl.find_all v2v.constrait key;
   Hashtbl.replace v2v.variables key value
 
@@ -52,6 +52,6 @@ let constrait_set v2v name position value =
        Hashtbl.add v2v.constrait name c;
        c)
     position value;
-  match find_opt v2v name with
-  | Some v -> if value v then Vector.append v2v.mismatches v
+  match Hashtbl.find_opt v2v.variables name with
+  | Some v -> if value @@ snd v then Vector.append v2v.mismatches { value = snd v; set = fst v; usage = position }
   | _ -> ()

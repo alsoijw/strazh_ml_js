@@ -17,11 +17,16 @@ and value = {
   kind : val_type;
   bases_on : value list
 }
+and mismatch = {
+  value : value;
+  set : Loc.position;
+  usage : Loc.position;
+}
 and variable2value = {
   variables : (string, Loc.position * value) Hashtbl.t;
   constrait : (string, (Loc.position, value -> bool) Hashtbl.t) Hashtbl.t;
   parrent : variable2value option;
-  mismatches : value Vector.vector;
+  mismatches : mismatch Vector.vector;
   mutable return : value list
 }
 [@@deriving show]
