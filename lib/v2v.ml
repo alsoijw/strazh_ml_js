@@ -2,13 +2,11 @@ open Types
 
 let variable2value_new =
   fun () ->
-  let (c : value list) = [] in
   let (r : value list) = [] in
   let (m : value list) = [] in
   { variables = Hashtbl.create 0
   ; constrait = Hashtbl.create 0
   ; parrent = None
-  ; corrupted = c
   ; mismatches = { list = m }
   ; return = r
   }
@@ -19,8 +17,7 @@ let wrap v2v =
   { variables = Hashtbl.create 0
   ; constrait = Hashtbl.create 0
   ; parrent = Some v2v
-  ; corrupted = (v2v.corrupted)
-  ; mismatches = (v2v.mismatches)
+  ; mismatches = v2v.mismatches
   ; return = r
   }
 

@@ -83,9 +83,8 @@ let rec def_func v2v a =
   | Flow_ast.Statement.FunctionDeclaration d -> (
       match d.id with
       | Some name ->
-        let vn vtype v2v a = Value.value_new v2v vtype a in
         let func_new f =
-          Value.value_new v2v (Callable f) [] in
+          Value.value_new (Callable f) [] in
         let run_func _ v2v args =
           let original = v2v in
           let v2v = V2v.wrap v2v () in
@@ -98,7 +97,7 @@ let rec def_func v2v a =
                 args_names := List.append !args_names [ (snd i.name).name ];
                 (Loc.none.start, match List.nth_opt args n with
                   | Some v -> v
-                  | None -> vn Value v2v [])
+                  | None -> Value.value_new Value [])
                 |> V2v.set v2v (snd i.name).name;
               | _ -> ()
             ) (snd d.params).params;
@@ -122,10 +121,9 @@ let rec def_func v2v a =
 
           Hashtbl.iter (fun n v ->
               if not @@ List.mem n !args_names then
-                V2v.set ~merge:true original n ((fst a)._end, Value.value_new v2v Types.Union @@ uniq @@ ext [ V2v.find_opt original n; Some (snd v)])) v2v.variables;
+                V2v.set ~merge:true original n ((fst a)._end, Value.value_new Types.Union @@ uniq @@ ext [ V2v.find_opt original n; Some (snd v)])) v2v.variables;
 
-          original.corrupted <- List.append original.corrupted v2v.corrupted;
-          Value.value_new v2v Types.Union v2v.return in
+          Value.value_new Types.Union v2v.return in
         V2v.set v2v (snd name).name (Loc.none.start, func_new run_func);
       | None -> ()
     )
@@ -159,7 +157,7 @@ and ast_walk debug v2v a =
         let v =
           ext [ V2v.find_opt true_ k; V2v.find_opt else_ k ]
           |> uniq
-          |> Value.value_new v2v Union in V2v.set v2v k ((fst a).start, v));
+          |> Value.value_new Union in V2v.set v2v k ((fst a).start, v));
     List.length true_.return == 0 && List.length else_.return == 0
 
   | Flow_ast.Statement.Block c ->

@@ -5,7 +5,7 @@ open Lib
 let assignment_1() =
   let v2v = setup None
       (fun v2v -> 
-         (Loc.none.start, value_new v2v Value []) |> V2v.set v2v "b") in
+         (Loc.none.start, value_new Value []) |> V2v.set v2v "b") in
   try_test v2v 0
     "a = b";
   Alcotest.(check bool) "" ((V2v.find v2v "a") == (V2v.find v2v "b")) true
@@ -13,10 +13,10 @@ let assignment_1() =
 let assignment_2() =
   let v2v = setup None
       (fun v2v ->
-         let t = (Loc.none.start, value_new v2v Value []) in
+         let t = (Loc.none.start, value_new Value []) in
          V2v.set v2v "a" t;
          V2v.set v2v "b" t;
-         (Loc.none.start, value_new v2v Value []) |> V2v.set v2v "c") in
+         (Loc.none.start, value_new Value []) |> V2v.set v2v "c") in
   try_test v2v 0
     "a = c";
   Alcotest.(check bool) "" ((V2v.find v2v "a") != (V2v.find v2v "b")) true
@@ -274,4 +274,4 @@ let constrait_2() =
     "a = safe_data()
      db_query(a);
      a = raw_data()";
-  Alcotest.(check bool) "" (List.length v2v.corrupted == 0) true
+  Alcotest.(check bool) "" (List.length v2v.mismatches.list == 0) true

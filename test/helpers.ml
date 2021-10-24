@@ -17,10 +17,9 @@ let setup var2val func =
 let test_func =
   fun () ->
   let v2v = V2v.variable2value_new() in
-  let vn vtype v2v a = value_new v2v vtype a in
-  let fn vtype = fun _ b c -> vn vtype b c in
+  let fn vtype = fun _ _ a -> Value.value_new vtype a in
   let func_new f =
-    value_new v2v (Callable f) [] in
+    value_new (Callable f) [] in
   let set name value = V2v.set v2v name (Loc.none.start, value) in
   func_new @@ fn Raw |> set "raw_data";
   func_new @@ fn Value |> set "safe_data";
@@ -39,9 +38,9 @@ let test_func =
                 )
             )
           | _ -> ()) aa;
-      vn Db v2v bases_on) |> set "db_query";
+      Value.value_new Db bases_on) |> set "db_query";
   func_new @@ fn Value |> set "_";
-  vn Value v2v [] |> set "b";
+  Value.value_new Value [] |> set "b";
   v2v
 
 let test_if =
@@ -53,13 +52,12 @@ let test_if =
       incr counter;
       c in
   let v2v = V2v.variable2value_new() in
-  let vn vtype v2v a = value_new v2v vtype a in
   let func_new f =
-    value_new v2v (Callable f) [] in
+    value_new (Callable f) [] in
   let set name value = V2v.set v2v name (Loc.none.start, value) in
-  func_new (fun _ v2v a -> value_new v2v (Numbered (next_val())) a)
+  func_new (fun _ _ a -> value_new (Numbered (next_val())) a)
   |> set "_";
-  vn Value v2v [] |> set "b";
+  Value.value_new Value [] |> set "b";
   v2v
 
 let numb2list v2v =

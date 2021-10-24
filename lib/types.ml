@@ -21,7 +21,6 @@ and variable2value = {
   variables : (string, Loc.position * value) Hashtbl.t;
   constrait : (string, (Loc.position, value -> bool) Hashtbl.t) Hashtbl.t;
   parrent : variable2value option;
-  mutable corrupted : value list;
   mismatches : value Vector.vector;
   mutable return : value list
 }
