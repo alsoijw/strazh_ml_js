@@ -34,4 +34,10 @@ let () =
       test_case "1" `Quick constrait_1;
       test_case "2" `Quick constrait_2;
     ];
+    "visibility", [
+      test_case "1" `Quick visibility_1;
+      test_case "2" `Quick visibility_2;
+      test_case "3" `Quick visibility_3;
+      test_case "4" `Quick visibility_4;
+    ];
   ]

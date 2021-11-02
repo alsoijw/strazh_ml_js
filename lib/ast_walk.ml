@@ -1,5 +1,6 @@
 open Types
 open Loc
+open Helpers
 
 let parse code =
   (Parser_flow.program code |> fst |> snd).statements
@@ -24,21 +25,6 @@ let extract f i =
       )
     | Error v -> Error v
   else Ok [| |]
-
-let ext i =
-  List.rev i
-  |> List.fold_left (fun acc i -> match i with
-      | Some v -> v :: acc;
-      | None -> acc) []
-
-let uniq i =
-  let u = Hashtbl.create 0 in
-  let o = ref [] in
-  List.iter (fun v -> match Hashtbl.find_opt u v with
-      | None -> Hashtbl.add u v 1; o := List.append !o [ v ]
-      | _ -> ()
-    ) i;
-  !o
 
 let rec ast2val v2v e =
   match e with
@@ -88,13 +74,12 @@ let rec def_func v2v a =
         let run_func _ v2v args =
           let original = v2v in
           let v2v = V2v.wrap v2v () in
-          let args_names = ref [] in
 
           List.iteri (fun n i -> 
               let open Flow_ast.Function.Param in
               match (snd i).argument |> snd with
               | Flow_ast.Pattern.Identifier i ->
-                args_names := List.append !args_names [ (snd i.name).name ];
+                Hashtbl.replace v2v.visibility (snd i.name).name Types.Local;
                 (Loc.none.start, match List.nth_opt args n with
                   | Some v -> v
                   | None -> Value.value_new Value [])
@@ -119,9 +104,16 @@ let rec def_func v2v a =
                 ) i
             ) v2v.constrait;
 
-          Hashtbl.iter (fun n v ->
-              if not @@ List.mem n !args_names then
-                V2v.set ~merge:true original n ((fst a)._end, Value.value_new Types.Union @@ uniq @@ ext [ V2v.find_opt original n; Some (snd v)])) v2v.variables;
+          Hashtbl.iter (fun n _ ->
+              let global = match Hashtbl.find_opt v2v.visibility n with
+                | Some v -> (
+                    match v with
+                    | Local -> false
+                    | _ -> true)
+                | _ -> true in
+              if global then
+                V2v.merge ~merge:true original n [ original; v2v ] (fst a)._end;
+            ) v2v.variables;
 
           Value.value_new Types.Union v2v.return in
         V2v.set v2v (snd name).name (Loc.none.start, func_new run_func);
@@ -154,10 +146,7 @@ and ast_walk debug v2v a =
     |> Hashtbl.fold key2list else_.variables
     |> uniq
     |> List.iter (fun k ->
-        let v =
-          ext [ V2v.find_opt true_ k; V2v.find_opt else_ k ]
-          |> uniq
-          |> Value.value_new Union in V2v.set v2v k ((fst a).start, v));
+        V2v.merge v2v k [ true_; else_ ] (fst a).start);
     List.length true_.return == 0 && List.length else_.return == 0
 
   | Flow_ast.Statement.Block c ->
@@ -173,6 +162,23 @@ and ast_walk debug v2v a =
         )
       | None -> false
     )
+
+  | Flow_ast.Statement.VariableDeclaration d -> (
+      List.iter (fun i ->
+          let open Flow_ast.Statement.VariableDeclaration.Declarator in
+          match snd (snd i).id with
+          | Flow_ast.Pattern.Identifier j ->
+            Hashtbl.replace v2v.visibility (snd j.name).name Types.Local;
+            (match (snd i).init with
+             | Some k ->
+               (match snd k |> ast2val v2v with
+                | Ok l -> V2v.set v2v (snd j.name).name (Loc.none.start, l)
+                | _ -> ())
+             | _ ->
+               V2v.set v2v (snd j.name).name (Loc.none.start, Value.value_new Value []))
+          | _ -> ();
+        ) d.declarations;
+      true)
 
   | _ -> true;
 

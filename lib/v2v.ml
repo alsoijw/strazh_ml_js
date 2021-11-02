@@ -1,4 +1,5 @@
 open Types
+open Helpers
 
 let variable2value_new =
   fun () ->
@@ -6,6 +7,7 @@ let variable2value_new =
   let (m : mismatch list) = [] in
   { variables = Hashtbl.create 0
   ; constrait = Hashtbl.create 0
+  ; visibility = Hashtbl.create 0
   ; parrent = None
   ; mismatches = { list = m }
   ; return = r
@@ -16,6 +18,7 @@ let wrap v2v =
   let (r : value list) = [] in
   { variables = Hashtbl.create 0
   ; constrait = Hashtbl.create 0
+  ; visibility = Hashtbl.create 0
   ; parrent = Some v2v
   ; mismatches = v2v.mismatches
   ; return = r
@@ -55,3 +58,9 @@ let constrait_set v2v name position value =
   match Hashtbl.find_opt v2v.variables name with
   | Some v -> if value @@ snd v then Vector.append v2v.mismatches { value = snd v; set = fst v; usage = position }
   | _ -> ()
+
+let merge ?(merge = false) v2v name other pos =
+  let v =
+    List.map (fun i -> find_opt i name) other
+    |> ext |> uniq |> Value.value_new Union in
+  set ~merge:merge v2v name (pos, v)

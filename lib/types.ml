@@ -22,8 +22,12 @@ and mismatch = {
   set : Loc.position;
   usage : Loc.position;
 }
+and visibility =
+    Inherited
+  | Local
 and variable2value = {
   variables : (string, Loc.position * value) Hashtbl.t;
+  visibility : (string, visibility) Hashtbl.t;
   constrait : (string, (Loc.position, value -> bool) Hashtbl.t) Hashtbl.t;
   parrent : variable2value option;
   mismatches : mismatch Vector.vector;
