@@ -39,5 +39,9 @@ let () =
       test_case "2" `Quick visibility_2;
       test_case "3" `Quick visibility_3;
       test_case "4" `Quick visibility_4;
+      test_case "5" `Quick visibility_5;
+      test_case "6" `Quick visibility_6;
+      test_case "7" `Quick visibility_7;
+      test_case "8" `Quick visibility_8;
     ];
   ]

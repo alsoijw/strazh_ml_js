@@ -25,6 +25,7 @@ and mismatch = {
 and visibility =
     Inherited
   | Local
+  | Block
 and variable2value = {
   variables : (string, Loc.position * value) Hashtbl.t;
   visibility : (string, visibility) Hashtbl.t;

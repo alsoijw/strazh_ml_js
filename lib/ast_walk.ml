@@ -63,6 +63,12 @@ and ast2val1 v2v a =
   | Flow_ast.Expression.Expression b -> ast2val v2v (snd b)
   | _ -> Error Undef
 
+let visibility_check v2v name visibility =
+  let v = match Hashtbl.find_opt v2v.visibility name with
+    | Some v -> v
+    | _ -> Inherited in
+  v < visibility
+
 let rec def_func v2v a =
   let b = snd a in
   match b with
@@ -105,13 +111,7 @@ let rec def_func v2v a =
             ) v2v.constrait;
 
           Hashtbl.iter (fun n _ ->
-              let global = match Hashtbl.find_opt v2v.visibility n with
-                | Some v -> (
-                    match v with
-                    | Local -> false
-                    | _ -> true)
-                | _ -> true in
-              if global then
+              if visibility_check v2v n Local then
                 V2v.merge ~merge:true original n [ original; v2v ] (fst a)._end;
             ) v2v.variables;
 
@@ -150,7 +150,13 @@ and ast_walk debug v2v a =
     List.length true_.return == 0 && List.length else_.return == 0
 
   | Flow_ast.Statement.Block c ->
-    ast_walk1 0 v2v c.body;
+    let wraped = V2v.wrap v2v () in
+    ast_walk1 0 wraped c.body;
+    Hashtbl.iter (fun n v ->
+        if visibility_check wraped n Block then
+          V2v.set v2v n v
+      ) wraped.variables;
+    v2v.return <- wraped.return;
     List.length v2v.return == 0
 
   | Flow_ast.Statement.Return d -> (
@@ -168,7 +174,11 @@ and ast_walk debug v2v a =
           let open Flow_ast.Statement.VariableDeclaration.Declarator in
           match snd (snd i).id with
           | Flow_ast.Pattern.Identifier j ->
-            Hashtbl.replace v2v.visibility (snd j.name).name Types.Local;
+            Hashtbl.replace v2v.visibility (snd j.name).name (
+              match d.kind with
+              | Let | Const -> Types.Block
+              | _ -> Types.Local
+            );
             (match (snd i).init with
              | Some k ->
                (match snd k |> ast2val v2v with
@@ -189,11 +199,11 @@ and ast_walk1 debug v2v ast =
   if debug > 0 then Types.show_variable2value v2v |> print_endline;
   List.iter df ast;
   let _ = List.fold_left (fun a i ->
-    if a && (match snd i with
+      if a && (match snd i with
           | Flow_ast.Statement.Return _ -> let _ = aw i in (); false
           | _ -> true)
-    then
-      aw i
-    else
-      false) true ast in ();
+      then
+        aw i
+      else
+        false) true ast in ();
   if debug > 0 then Types.show_variable2value v2v |> print_endline;

@@ -309,3 +309,37 @@ let visibility_4() =
      db_query(a)";
   let r = mismatch_check v2v [ V2v.find v2v "a" ] 1 in
   Alcotest.(check bool) "" r true
+
+let visibility_5() =
+  let v2v = test_func() in
+  try_test v2v 2
+    "let a = b";
+  Alcotest.(check bool) "" (V2v.find v2v "a" = V2v.find v2v "b") true
+
+let visibility_6() =
+  let v2v = test_func() in
+  try_test v2v 0
+    "a = safe_data()
+
+     {
+       let a = raw_data()
+     }
+     db_query(a)";
+  Alcotest.(check bool) "" (List.length v2v.mismatches.list == 0) true
+
+let visibility_7() =
+  let v2v = test_func() in
+  try_test v2v 2
+    "const a = b";
+  Alcotest.(check bool) "" (V2v.find v2v "a" = V2v.find v2v "b") true
+
+let visibility_8() =
+  let v2v = test_func() in
+  try_test v2v 0
+    "a = safe_data()
+
+     {
+       const a = raw_data()
+     }
+     db_query(a)";
+  Alcotest.(check bool) "" (List.length v2v.mismatches.list == 0) true
