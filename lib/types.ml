@@ -12,6 +12,7 @@ and val_type =
   | Raw | Db
   | Numbered of int
   | Union
+  | Scope of (string, value) Hashtbl.t
 and value = {
   id : int;
   kind : val_type;
@@ -39,4 +40,5 @@ and variable2value = {
 type runtime_error =
     Undef
   | IsNotCallable
+  | WrongType
 [@@deriving show]

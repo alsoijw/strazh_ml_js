@@ -44,4 +44,7 @@ let () =
       test_case "7" `Quick visibility_7;
       test_case "8" `Quick visibility_8;
     ];
+    "scope", [
+      test_case "1" `Quick scope_1;
+    ];
   ]

@@ -57,6 +57,48 @@ let rec ast2val v2v e =
           | _ -> Error Undef)
       | _ -> Error Undef)
 
+  | Flow_ast.Expression.Object d -> (
+      let hash = Hashtbl.create 0 in
+      let flag = ref None in
+      List.iter (fun e ->
+          match e with
+          | Flow_ast.Expression.Object.Property (_, f) -> (
+              match f with
+              | Flow_ast.Expression.Object.Property.Init g -> (
+                  match ast2val v2v @@ snd g.value with
+                  | Ok value' -> (
+                      match g.key with
+                      | Flow_ast.Expression.Object.Property.Identifier (_, h) -> Hashtbl.replace hash h.name value'
+                      | _ -> ()
+                    )
+                  | Error err -> flag := Some err
+                )
+              | _ -> ()
+            )
+          | _ -> ()
+        ) d.properties;
+      match !flag with
+      | Some s -> Error s
+      | None -> Ok (Value.value_new (Types.Scope hash) [])
+    )
+
+  | Flow_ast.Expression.Member d -> (
+      match ast2val v2v @@ snd d._object with
+      | Ok e -> (
+          match e.kind with
+          | Scope hash -> (
+              match d.property with
+              | Flow_ast.Expression.Member.PropertyIdentifier f ->
+                (match Hashtbl.find_opt hash (snd f).name with
+                 | Some v -> Ok v
+                 | _ -> Error Undef)
+              | _ -> Error WrongType
+            );
+          | _ -> Error WrongType
+        )
+      | Error err -> Error err
+    )
+
   | _ -> Error Undef
 and ast2val1 v2v a =
   match a with

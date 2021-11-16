@@ -343,3 +343,14 @@ let visibility_8() =
      }
      db_query(a)";
   Alcotest.(check bool) "" (List.length v2v.mismatches.list == 0) true
+
+let scope_1() =
+  let v2v = test_func() in
+  try_test v2v 0
+    "a = raw_data()
+     b = {
+       c: a
+     }
+     d = db_query(b.c)";
+  let r = mismatch_check v2v [ V2v.find v2v "a" ] 1 in
+  Alcotest.(check bool) "" r true
