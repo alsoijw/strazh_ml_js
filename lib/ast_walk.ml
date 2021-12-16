@@ -37,6 +37,7 @@ let rec ast2val v2v e =
   | Flow_ast.Expression.Call f -> ( 
       match snd f.callee with
       | Flow_ast.Expression.Identifier g -> (
+          V2v.constrait_set v2v (snd g).name (fst g).start (Value.type_blacklist Types.MaybeEval);
           match (snd g).name |> V2v.find_opt v2v with
           | Some h -> (
               match h.kind with
@@ -46,7 +47,7 @@ let rec ast2val v2v e =
                   | Ok t -> Ok (g (snd f.arguments).arguments v2v (Array.to_list t))
                   | Error v -> Error v)
               | Types.MaybeEval -> (
-                  Ok (Value.value_new v2v Types.Eval [ h ])
+                  Ok (Value.value_new Types.Eval [ h ])
                 )
               | _ -> Error IsNotCallable)
           | None -> Error Undef)
@@ -61,6 +62,7 @@ let rec ast2val v2v e =
       | _ -> Error Undef)
 
   | Flow_ast.Expression.Object d -> (
+      print_endline "---";
       let hash = Hashtbl.create 0 in
       let flag = ref None in
       List.iter (fun e ->
@@ -95,6 +97,20 @@ let rec ast2val v2v e =
                 (match Hashtbl.find_opt hash (snd f).name with
                  | Some v -> Ok v
                  | _ -> Error Undef)
+
+              | Flow_ast.Expression.Member.PropertyExpression f ->
+                (match snd f with
+                 | Flow_ast.Expression.Identifier _ -> Ok (Value.value_new Types.MaybeEval [])
+                 | Flow_ast.Expression.Literal g ->
+                   (match g.value with
+                    | Flow_ast.Literal.String h ->
+                      (match Hashtbl.find_opt hash h with
+                       | Some v -> Ok (Value.value_new Types.MaybeEval [ v ])
+                       | _ -> Ok (Value.value_new Types.MaybeEval []))
+                    | _ -> Ok (Value.value_new Types.MaybeEval []));
+                 | _ -> Ok (Value.value_new Types.MaybeEval [])
+                );
+
               | _ -> Error WrongType
             );
           | _ -> Error WrongType
@@ -252,6 +268,11 @@ and ast_walk debug v2v a =
 and ast_walk1 debug v2v ast =
   let aw = ast_walk (debug > 1) v2v in
   let df = def_func v2v in
+
+  if debug < 0 then
+    List.iter (fun i ->
+        Relation.statement2relation 0 i |> Relation.show_r_type |> print_endline
+      ) ast;
 
   if debug > 0 then Types.show_variable2value v2v |> print_endline;
   List.iter df ast;

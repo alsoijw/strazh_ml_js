@@ -48,4 +48,7 @@ let () =
       test_case "1" `Quick scope_1;
       test_case "2" `Quick scope_2;
     ];
+    "relation", [
+      test_case "1" `Quick relation_1;
+    ];
   ]

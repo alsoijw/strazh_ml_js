@@ -312,7 +312,7 @@ let visibility_4() =
 
 let visibility_5() =
   let v2v = test_func() in
-  try_test v2v 2
+  try_test v2v 0
     "let a = b";
   Alcotest.(check bool) "" (V2v.find v2v "a" = V2v.find v2v "b") true
 
@@ -329,7 +329,7 @@ let visibility_6() =
 
 let visibility_7() =
   let v2v = test_func() in
-  try_test v2v 2
+  try_test v2v 0
     "const a = b";
   Alcotest.(check bool) "" (V2v.find v2v "a" = V2v.find v2v "b") true
 
@@ -361,5 +361,29 @@ let scope_2() =
     "a = {}
      b = a['constructor']
      c = b('evil_code')";
-  let r = mismatch_check v2v [ V2v.find v2v "c" ] 1 in
+    (*
+    "a[b];
+     a['b'];
+     a.b";
+       *)
+  let r = mismatch_check v2v [ V2v.find v2v "b" ] 1 in
+  Alcotest.(check bool) "" r true
+
+let relation_1() =
+  let m i = Relation.show_r_type i |> print_endline in
+  let a = relation_test 1
+      "a = safe_data()
+     f0()
+     db_query(a)" in
+  List.iter m a;
+  print_newline ();
+  let b = relation_test 1
+      "a = raw_data()" in
+    (*
+    "a[b];
+     a['b'];
+     a.b";
+       *)
+  List.iter m b;
+  let r = false in
   Alcotest.(check bool) "" r true

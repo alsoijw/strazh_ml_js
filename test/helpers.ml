@@ -7,6 +7,9 @@ open Loc
 let try_test v2v debug code =
   parse code |> ast_walk1 debug v2v
 
+let relation_test debug code =
+  parse code |> List.map (fun i -> Relation.statement2relation debug i)
+
 let setup var2val func =
   let v2v = match var2val with
     | Some v -> v
