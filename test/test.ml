@@ -354,3 +354,12 @@ let scope_1() =
      d = db_query(b.c)";
   let r = mismatch_check v2v [ V2v.find v2v "a" ] 1 in
   Alcotest.(check bool) "" r true
+
+let scope_2() =
+  let v2v = test_if() in
+  try_test v2v 0
+    "a = {}
+     b = a['constructor']
+     c = b('evil_code')";
+  let r = mismatch_check v2v [ V2v.find v2v "c" ] 1 in
+  Alcotest.(check bool) "" r true

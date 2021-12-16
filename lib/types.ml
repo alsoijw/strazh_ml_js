@@ -13,6 +13,8 @@ and val_type =
   | Numbered of int
   | Union
   | Scope of (string, value) Hashtbl.t
+  | MaybeEval
+  | Eval
 and value = {
   id : int;
   kind : val_type;

@@ -45,6 +45,9 @@ let rec ast2val v2v e =
                   match Array.of_list (snd f.arguments).arguments |> extract ast2val1_ with
                   | Ok t -> Ok (g (snd f.arguments).arguments v2v (Array.to_list t))
                   | Error v -> Error v)
+              | Types.MaybeEval -> (
+                  Ok (Value.value_new v2v Types.Eval [ h ])
+                )
               | _ -> Error IsNotCallable)
           | None -> Error Undef)
       | _ -> Error Undef)
@@ -98,6 +101,18 @@ let rec ast2val v2v e =
         )
       | Error err -> Error err
     )
+(*
+
+  | Flow_ast.Expression.Member d -> (
+      match snd d._object with
+      | Flow_ast.Expression.Identifier e -> (
+          match V2v.find_opt v2v (snd e).name with
+          | Some f -> Ok (Value.value_new v2v Types.MaybeEval [ f ])
+          | _ -> Error Undef
+        )
+      | _ -> Error Undef
+  )
+   *)
 
   | _ -> Error Undef
 and ast2val1 v2v a =

@@ -20,11 +20,11 @@ let value_new =
   let bases_on = flatten bases_on in
   { id = next_val(); kind = kind; bases_on = bases_on }
 
-let type_blacklist v _type =
+let type_blacklist _type v =
   match v.kind with
   | Types.Union -> (
       List.exists (fun a -> a.kind = _type) v.bases_on)
   | _ -> v.kind = _type
 
 let type_db_blacklist v =
-  type_blacklist v Types.Raw
+  type_blacklist Types.Raw v
