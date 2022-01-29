@@ -385,5 +385,33 @@ let relation_1() =
      a.b";
        *)
   List.iter m b;
+  Relation.intersection [ a; b ] |>
+  List.iter (fun i -> List.iter print_endline i; print_newline ());
+  let r = false in
+  Alcotest.(check bool) "" r true
+
+let relation_1() =
+  let m i = Relation.show_r_type i |> print_endline in
+  let a = relation_test 1
+      (*
+      "d = new Date();
+       d.setTime(949698011000)
+       a = [...new Set('the quick brown fox jumps over the lazy dog'.replace(/ /g, '').toLowerCase().split('').sort())];
+       name = [ d.getDate(), d.getHours(), d.getMinutes(), d.getSeconds() ].map(i => a[i]).join('');
+       [ 'alert(\"Evil\")' ].map(globalThis[name])"
+         *)
+      "a = [ '1', 'two', 1]"
+  in
+      (*
+  "f(/ /g)" in
+  let _ = List.map Relation.ti_debug a in
+*)
+  let open Relation in
+  let open Ti in
+  let v2t = {
+    variables = Hashtbl.create 0
+  } in
+  let ti i = Ti.ti_debug i v2t in
+  let _ = List.map ti a in
   let r = false in
   Alcotest.(check bool) "" r true
