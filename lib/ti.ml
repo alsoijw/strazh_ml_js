@@ -38,7 +38,7 @@ let rec print_type = function
   | Union list -> List.map print_type list |> String.concat " | "
   | _ -> ""
 
-let sign type_v =
+let sign =
   let arr = [
     "Array", [
       "sort", TCall ([], Type ("Array", []));
@@ -68,12 +68,12 @@ let sign type_v =
 let rec type_inference i v2t =
   let tid i = ti_debug i v2t in
   match i with
-  | Relation.Call (fn, args) -> (match tid fn with
+  | Relation.Call (fn, _) -> (match tid fn with
       | TCall (_, return) -> return
       | _ -> TUnmatched)
 
   | PropName (obj, prop) -> (match ti_debug obj v2t with
-      | Type (t, param) -> (match Hashtbl.find_opt sign t with
+      | Type (t, _) -> (match Hashtbl.find_opt sign t with
           | Some vtable -> (match Hashtbl.find_opt vtable prop with
               | Some sign -> sign
               | None -> TUnmatched)

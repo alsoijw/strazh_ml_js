@@ -81,19 +81,11 @@ and ast2val1 = function
   | _ -> Unmatched
 and a2v i = snd i |> ast2val
 
-let rec statement2relation debug a =
+let statement2relation debug a =
   let b = snd a in
   if debug > 1 then Flow_ast.Statement.show_t' Loc.pp Loc.pp b |> print_endline;
   match b with
   | Flow_ast.Statement.Expression c -> ast2val (snd c.expression)
-  | Flow_ast.Statement.If c ->
-    Unmatched
-  | Flow_ast.Statement.Block c ->
-    Unmatched
-  | Flow_ast.Statement.Return d ->
-    Unmatched
-  | Flow_ast.Statement.VariableDeclaration d ->
-    Unmatched
   | _ ->
     Unmatched
 
@@ -105,3 +97,77 @@ let intersection blocks =
         ) i |> Helpers.ext
     ) blocks
 
+    (*
+let cur_pos = ref { line = 1; column = 0 }
+
+let wrap v i =
+  Loc.show_position !cur_pos |> print_endline;
+  (fst i).start |> Loc.show_position |> print_endline;
+  let nl = String.split_on_char '\n' v in
+  let char_count = List.rev nl |> List.hd |> String.length in
+  cur_pos := { line = !cur_pos.line + List.length nl - 1; column = !cur_pos.column + char_count };
+  v
+
+
+let pattern2code i =
+  wrap (match snd i with
+      | Flow_ast.Pattern.Identifier e -> (e.name |> snd).name
+      | _ -> "") i
+
+let rec expression2code i =
+  wrap (match snd i with
+      | Flow_ast.Expression.Array _ ->
+        ""
+      | Flow_ast.Expression.Assignment d ->
+        List.rev [
+          d.right |> expression2code;
+          "=";
+          d.left |> pattern2code;
+        ] |> String.concat "" 
+      | Flow_ast.Expression.Identifier (_, f) -> f.name
+      | _ -> "") i
+
+let statement2code = function
+  | Flow_ast.Statement.Expression c -> expression2code c.expression
+  | _ -> ""
+
+           (*
+
+let cur_pos = ref Loc.none.start
+
+let wrap f a =
+  Loc.show_position !cur_pos |> print_endline;
+  let v = f a in
+  let nl = String.split_on_char '\n' v in
+  let char_count = List.rev nl |> List.hd |> String.length in
+  cur_pos := { line = !cur_pos.line + List.length nl - 1; column = !cur_pos.column + char_count };
+  v
+
+let pattern2code =
+  wrap (function
+      | Flow_ast.Pattern.Identifier e -> (e.name |> snd).name
+      | _ -> "")
+
+let expression2code =
+  let no_rec e2c = function
+    | Flow_ast.Expression.Array a ->
+      ""
+    | Flow_ast.Expression.Assignment d ->
+      String.concat "" [
+        snd d.left |> pattern2code;
+        "=";
+        snd d.right |> e2c;
+      ]
+    | Flow_ast.Expression.Identifier (_, f) -> f.name
+    | _ -> "" in
+  let e2c_wrap f = no_rec f |> wrap in
+  let rec e2c_r i = e2c_wrap e2c_r i in
+  e2c_r
+
+let statement2code =
+  wrap (function
+      | Flow_ast.Statement.Expression c -> expression2code (snd c.expression)
+      | _ -> "")
+*)
+
+       *)
