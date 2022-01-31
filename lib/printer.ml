@@ -25,13 +25,6 @@ let rec expression2loc i =
    | Flow_ast.Expression.Member d -> (match d.property with
        | Flow_ast.Expression.Member.PropertyIdentifier f ->
          [
-           (fst d._object).start;
-           (fst d._object)._end;
-           (fst f).start;
-           (fst f)._end;
-           (fst i)._end;
-         ]
-       | Flow_ast.Expression.Member.PropertyExpression f -> (
            [
              (fst d._object).start;
              (fst d._object)._end;
@@ -39,9 +32,17 @@ let rec expression2loc i =
              (fst f)._end;
              (fst i)._end;
            ]
-         )
+         ]
+       | Flow_ast.Expression.Member.PropertyExpression f ->
+         [
+           (fst d._object).start;
+           (fst d._object)._end;
+           (fst f).start;
+           (fst f)._end;
+           (fst i)._end;
+         ] :: expression2loc d._object
        | _ -> []
-     )
+       )
    | _ -> []) 
 
 let statement2loc = function
@@ -98,12 +99,8 @@ let process str =
   List.length code |> Printf.printf "%d\n";
   print_endline str;
   let str_tree = ref (Leaf ({begin_ = 0; end_ = String.length str }, str)) in
-  (*
-let _ = split1 str_tree [ 4; 7; 11; 12; 14 ] in
-let _ = split1 str_tree [ 32; 35; 36; 37; 38 ] in
-     *)
   let _ =
-    List.iter (fun i -> snd i |> statement2loc |> convert |> split1 str_tree) code
+    List.iter (fun i -> snd i |> statement2loc |> List.iter (fun i -> convert i |> split1 str_tree)) code
   in
   let rec join i = match !i with
     | Leaf (_, s) -> s
