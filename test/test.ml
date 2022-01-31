@@ -2,7 +2,7 @@ open Lib
 
 
 let print_1() =
-  let code = Printer.process "c = arr  [ 0 ]; console('1')" in
+  let _ = Printer.process "c = arr  [ 0 ]; console('1'); d=arr[1]" in
   (*
 let code = Ast_walk.parse " a = b;\nc=d" in
 let code = Ast_walk.parse "arr  [i[0] ]" in
