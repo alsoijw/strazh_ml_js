@@ -12,27 +12,25 @@ type leaf =
 and tree = leaf ref
 [@@deriving show]
 
-           (*
-let pattern2code i =
-  wrap (match snd i with
-      | Flow_ast.Pattern.Identifier e -> (e.name |> snd).name
-      | _ -> "") i
-
-              *)
-let rec expression2loc i =
+let rec pattern2code i =
+  match snd i with
+  | Flow_ast.Pattern.Expression e -> (match expression2loc e with
+      | [] -> []
+      | _ :: tl -> tl)
+  | Flow_ast.Pattern.Identifier _ -> []
+  | _ -> []
+and expression2loc i =
   (match snd i with
-   | Flow_ast.Expression.Assignment d -> expression2loc d.right
+   | Flow_ast.Expression.Assignment d -> pattern2code d.left @ expression2loc d.right
    | Flow_ast.Expression.Member d -> (match d.property with
        | Flow_ast.Expression.Member.PropertyIdentifier f ->
          [
-           [
-             (fst d._object).start;
-             (fst d._object)._end;
-             (fst f).start;
-             (fst f)._end;
-             (fst i)._end;
-           ]
-         ]
+           (fst d._object).start;
+           (fst d._object)._end;
+           (fst f).start;
+           (fst f)._end;
+           (fst i)._end;
+         ] :: expression2loc d._object
        | Flow_ast.Expression.Member.PropertyExpression f ->
          [
            (fst d._object).start;
@@ -41,8 +39,9 @@ let rec expression2loc i =
            (fst f)._end;
            (fst i)._end;
          ] :: expression2loc d._object
+         @ expression2loc f
        | _ -> []
-       )
+     )
    | _ -> []) 
 
 let statement2loc = function
@@ -112,5 +111,6 @@ let process str =
   in
   show_tree str_tree |> print_endline;
   print_endline "===";
-  join str_tree |> print_endline;
-  0
+  let r = join str_tree in
+  r |> print_endline;
+  r
