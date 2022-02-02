@@ -24,15 +24,10 @@ and expression2loc i =
    | Flow_ast.Expression.Assignment d -> pattern2code d.left @ expression2loc d.right
    | Flow_ast.Expression.Member d -> (match d.property with
        | Flow_ast.Expression.Member.PropertyIdentifier f ->
-         [
-           (fst d._object).start;
-           (fst d._object)._end;
-           (fst f).start;
-           (fst f)._end;
-           (fst i)._end;
-         ] :: expression2loc d._object
+         []
        | Flow_ast.Expression.Member.PropertyExpression f ->
          [
+
            (fst d._object).start;
            (fst d._object)._end;
            (fst f).start;
@@ -48,8 +43,10 @@ let statement2loc = function
   | Flow_ast.Statement.Expression c -> expression2loc c.expression
   | _ -> []
 
-let convert =
-  List.map (fun i -> i.column)
+let convert line_lenght =
+  List.map (fun i ->
+      List.mapi (fun n j -> if n < i.line - 1 then j + 1 else 0) line_lenght
+      |> List.fold_left (+) 0 |> (+) i.column)
 
 let rec split1 tree s_list =
   if List.length s_list > 0 then begin
@@ -97,9 +94,10 @@ let process str =
   List.iter pp code;
   List.length code |> Printf.printf "%d\n";
   print_endline str;
+  let line_lenght = String.split_on_char '\n' str |> List.map String.length in
   let str_tree = ref (Leaf ({begin_ = 0; end_ = String.length str }, str)) in
   let _ =
-    List.iter (fun i -> snd i |> statement2loc |> List.iter (fun i -> convert i |> split1 str_tree)) code
+    List.iter (fun i -> snd i |> statement2loc |> List.iter (fun i -> convert line_lenght i |> split1 str_tree)) code
   in
   let rec join i = match !i with
     | Leaf (_, s) -> s

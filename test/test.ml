@@ -14,3 +14,15 @@ let print_3() =
 
 let print_4() =
   Alcotest.(check string) "" (Printer.process "c[ i[1] ] = arr[i][j]") "c[ g(i, 1) ] = g(g(arr, i), j)"
+
+let print_5() =
+  Alcotest.(check string) "" (Printer.process "\n\tv = a[0]") "\n\tv = g(a, 0)"
+
+let print_6() =
+  Alcotest.(check string) "" (Printer.process "v = a.c") "v = a.c"
+
+let print_7() =
+  Alcotest.(check string) "" (Printer.process "v = a[ c.i[j] ]") "v = g(a, g(c.i, j))"
+
+let print_8() =
+  Alcotest.(check string) "" (Printer.process "v = a.c") "v = a.c"
