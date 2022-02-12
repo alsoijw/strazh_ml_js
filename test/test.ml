@@ -25,4 +25,13 @@ let print_7() =
   Alcotest.(check string) "" (Printer.process "v = a[ c.i[j] ]") "v = g(a, g(c.i, j))"
 
 let print_8() =
-  Alcotest.(check string) "" (Printer.process "v = a.c") "v = a.c"
+  Alcotest.(check string) "" (Printer.process "delete a[ b[c] ]") "delete a[ g(b, c) ]"
+
+let print_9() =
+  Alcotest.(check string) "" (Printer.process "!a[b]") "!g(a, b)"
+
+let print_10() =
+  Alcotest.(check string) "" (Printer.process "var { a: [ b = e[f] ] } = d") "var { a: [ b = g(e, f) ] } = d"
+
+let print_11() =
+  Alcotest.(check string) "" (Printer.process "var { a: { b = e[f] } = h[i] } = j[k]") "var { a: { b = g(e, f) } = g(h, i) } = g(j, k)"

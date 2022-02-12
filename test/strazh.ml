@@ -13,5 +13,8 @@ let () =
       test_case "1" `Quick print_6;
       test_case "1" `Quick print_7;
       test_case "1" `Quick print_8;
+      test_case "1" `Quick print_9;
+      test_case "1" `Quick print_10;
+      test_case "1" `Quick print_11;
     ];
   ]

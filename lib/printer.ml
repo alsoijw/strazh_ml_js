@@ -12,35 +12,58 @@ type leaf =
 and tree = leaf ref
 [@@deriving show]
 
-let rec pattern2code i =
-  match snd i with
-  | Flow_ast.Pattern.Expression e -> (match expression2loc e with
-      | [] -> []
-      | _ :: tl -> tl)
+let rec array_pattern2loc = function
+  | Flow_ast.Pattern.Array.Element (_, a) -> pattern2loc a.argument @ (match a.default with
+      | Some b -> expression2loc b
+      | None -> [])
+  | Flow_ast.Pattern.Array.RestElement (_, a) -> pattern2loc a.argument
+  | Flow_ast.Pattern.Array.Hole _ -> []
+and pattern2loc i = match snd i with
+  | Flow_ast.Pattern.Expression e -> expression2loc_tail e
   | Flow_ast.Pattern.Identifier _ -> []
-  | _ -> []
+  | Flow_ast.Pattern.Array a -> List.map array_pattern2loc a.elements |> List.flatten
+  | Flow_ast.Pattern.Object a -> List.map (fun i -> match i with
+      | Flow_ast.Pattern.Object.Property (_, b) ->
+        (match b.key with
+         | Flow_ast.Pattern.Object.Property.Literal _ -> []
+         | Flow_ast.Pattern.Object.Property.Identifier _ -> []
+         | Flow_ast.Pattern.Object.Property.Computed (_, b) -> expression2loc b.expression) @
+        pattern2loc b.pattern @
+        (match b.default with
+         | Some c -> expression2loc c
+         | None -> [])
+      | Flow_ast.Pattern.Object.RestElement (_, b) -> pattern2loc b.argument
+    ) a.properties |> List.flatten
 and expression2loc i =
-  (match snd i with
-   | Flow_ast.Expression.Assignment d -> pattern2code d.left @ expression2loc d.right
-   | Flow_ast.Expression.Member d -> (match d.property with
-       | Flow_ast.Expression.Member.PropertyIdentifier f ->
-         []
-       | Flow_ast.Expression.Member.PropertyExpression f ->
-         [
-
-           (fst d._object).start;
-           (fst d._object)._end;
-           (fst f).start;
-           (fst f)._end;
-           (fst i)._end;
-         ] :: expression2loc d._object
-         @ expression2loc f
-       | _ -> []
-     )
-   | _ -> []) 
-
-let statement2loc = function
+  match snd i with
+  | Flow_ast.Expression.Assignment d -> pattern2loc d.left @ expression2loc d.right
+  | Flow_ast.Expression.Member d -> (match d.property with
+      | Flow_ast.Expression.Member.PropertyIdentifier _ -> []
+      | Flow_ast.Expression.Member.PropertyExpression f ->
+        [
+          (fst d._object).start;
+          (fst d._object)._end;
+          (fst f).start;
+          (fst f)._end;
+          (fst i)._end;
+        ] :: expression2loc d._object
+        @ expression2loc f
+      | _ -> [])
+  | Flow_ast.Expression.Unary b -> (match b.operator with
+      | Flow_ast.Expression.Unary.Delete -> expression2loc_tail b.argument
+      | _ -> expression2loc b.argument)
+  | _ -> []
+and expression2loc_tail i = match expression2loc i with
+  | [] -> []
+  | _ :: tl -> tl
+and statement2loc = function
   | Flow_ast.Statement.Expression c -> expression2loc c.expression
+  | Flow_ast.Statement.VariableDeclaration a -> List.map (fun (_, i) ->
+      let open Flow_ast.Statement.VariableDeclaration.Declarator in
+      pattern2loc i.id @ (match i.init with
+          | Some v -> expression2loc v
+          | None -> [])
+    ) a.declarations |> List.flatten
   | _ -> []
 
 let convert line_lenght =
@@ -48,7 +71,7 @@ let convert line_lenght =
       List.mapi (fun n j -> if n < i.line - 1 then j + 1 else 0) line_lenght
       |> List.fold_left (+) 0 |> (+) i.column)
 
-let rec split1 tree s_list =
+let rec split tree s_list =
   if List.length s_list > 0 then begin
     match !tree with
     | Leaf (slice, str) -> (
@@ -62,30 +85,15 @@ let rec split1 tree s_list =
             sub e (ref (Leaf ({ begin_ = b; end_ = e}, s)) :: list)
           ) else list in
         let b = Stack.pop s_list in
-        tree := Tree (slice, sub b [])
-      )
+        tree := Tree (slice, sub b []))
     | Tree (_, list) -> (
         let begin_ = List.hd s_list in
         let v = List.find (fun i -> match !i with
             | Leaf (i, _) -> i.begin_ <= begin_
             | Tree (i, _) -> i.begin_ <= begin_
           ) list in
-        split1 v s_list
-      )
+        split v s_list)
   end
-
-let split str s_list =
-  let s_list = [0] @ s_list @ [ String.length str ] |> List.rev |> List.to_seq |> Stack.of_seq in
-  let rec sub b list =
-    if not @@ Stack.is_empty s_list then (
-      let e = Stack.pop s_list in
-      Printf.printf "%d %d\t" b e;
-      let s = String.sub str b (e - b) in
-      s |> print_endline;
-      sub e (s :: list)
-    ) else list in
-  let b = Stack.pop s_list in
-  sub b []
 
 let process str =
   let code = Ast_walk.parse str in
@@ -97,7 +105,7 @@ let process str =
   let line_lenght = String.split_on_char '\n' str |> List.map String.length in
   let str_tree = ref (Leaf ({begin_ = 0; end_ = String.length str }, str)) in
   let _ =
-    List.iter (fun i -> snd i |> statement2loc |> List.iter (fun i -> convert line_lenght i |> split1 str_tree)) code
+    List.iter (fun i -> snd i |> statement2loc |> List.iter (fun i -> convert line_lenght i |> split str_tree)) code
   in
   let rec join i = match !i with
     | Leaf (_, s) -> s
