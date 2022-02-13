@@ -35,3 +35,15 @@ let print_10() =
 
 let print_11() =
   Alcotest.(check string) "" (Printer.process "var { a: { b = e[f] } = h[i] } = j[k]") "var { a: { b = g(e, f) } = g(h, i) } = g(j, k)"
+
+let print_12() =
+  Alcotest.(check string) "" (Printer.process "a[ b[c] ]++") "a[ g(b, c) ]++"
+
+let print_13() =
+  Alcotest.(check string) "" (Printer.process "a[ b[c] ]++") "a[ g(b, c) ]++"
+
+let print_14() =
+  (*
+    Alcotest.(check string) "" (Printer.process "a = (b) => c(b)") "a[ g(b, c) ]++"
+     *)
+    Alcotest.(check string) "" (Printer.process "var [a, ...b] = c") "a[ g(b, c) ]++"

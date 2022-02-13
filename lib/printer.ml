@@ -13,9 +13,7 @@ and tree = leaf ref
 [@@deriving show]
 
 let rec array_pattern2loc = function
-  | Flow_ast.Pattern.Array.Element (_, a) -> pattern2loc a.argument @ (match a.default with
-      | Some b -> expression2loc b
-      | None -> [])
+  | Flow_ast.Pattern.Array.Element (_, a) -> pattern2loc a.argument @ expression2loc_opt a.default
   | Flow_ast.Pattern.Array.RestElement (_, a) -> pattern2loc a.argument
   | Flow_ast.Pattern.Array.Hole _ -> []
 and pattern2loc i = match snd i with
@@ -28,17 +26,22 @@ and pattern2loc i = match snd i with
          | Flow_ast.Pattern.Object.Property.Literal _ -> []
          | Flow_ast.Pattern.Object.Property.Identifier _ -> []
          | Flow_ast.Pattern.Object.Property.Computed (_, b) -> expression2loc b.expression) @
-        pattern2loc b.pattern @
-        (match b.default with
-         | Some c -> expression2loc c
-         | None -> [])
+        pattern2loc b.pattern @ expression2loc_opt b.default
       | Flow_ast.Pattern.Object.RestElement (_, b) -> pattern2loc b.argument
     ) a.properties |> List.flatten
-and expression2loc i =
-  match snd i with
+and expression2loc i = match snd i with
+  | Flow_ast.Expression.Array a -> List.map (function
+      | Flow_ast.Expression.Array.Expression b -> expression2loc b
+      | Flow_ast.Expression.Array.Spread (_, b) -> let open Flow_ast.Expression.SpreadElement in
+        expression2loc b.argument
+      | Flow_ast.Expression.Array.Hole _ -> []
+    ) a.elements |> List.flatten
+  | Flow_ast.Expression.ArrowFunction a -> []
   | Flow_ast.Expression.Assignment d -> pattern2loc d.left @ expression2loc d.right
+  | Flow_ast.Expression.Binary a -> expression2loc a.left @ expression2loc a.right
   | Flow_ast.Expression.Member d -> (match d.property with
       | Flow_ast.Expression.Member.PropertyIdentifier _ -> []
+      | Flow_ast.Expression.Member.PropertyPrivateName _ -> []
       | Flow_ast.Expression.Member.PropertyExpression f ->
         [
           (fst d._object).start;
@@ -47,24 +50,28 @@ and expression2loc i =
           (fst f)._end;
           (fst i)._end;
         ] :: expression2loc d._object
-        @ expression2loc f
-      | _ -> [])
+        @ expression2loc f)
+  | Flow_ast.Expression.This _ -> []
+  | Flow_ast.Expression.TypeCast a -> expression2loc a.expression
   | Flow_ast.Expression.Unary b -> (match b.operator with
       | Flow_ast.Expression.Unary.Delete -> expression2loc_tail b.argument
       | _ -> expression2loc b.argument)
-  | _ -> []
+  | Flow_ast.Expression.Update b -> expression2loc_tail b.argument
+  | Flow_ast.Expression.Yield a -> expression2loc_opt a.argument
+  | __ -> []
 and expression2loc_tail i = match expression2loc i with
   | [] -> []
   | _ :: tl -> tl
+and expression2loc_opt = function
+  | Some b -> expression2loc b
+  | None -> []
 and statement2loc = function
   | Flow_ast.Statement.Expression c -> expression2loc c.expression
   | Flow_ast.Statement.VariableDeclaration a -> List.map (fun (_, i) ->
       let open Flow_ast.Statement.VariableDeclaration.Declarator in
-      pattern2loc i.id @ (match i.init with
-          | Some v -> expression2loc v
-          | None -> [])
+      pattern2loc i.id @ expression2loc_opt i.init
     ) a.declarations |> List.flatten
-  | _ -> []
+  | __ -> []
 
 let convert line_lenght =
   List.map (fun i ->
