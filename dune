@@ -1,6 +1,6 @@
 (executable
  (name strazh)
- (libraries ppx_deriving flow_parser lib)
+ (libraries ppx_deriving flow_parser lib core)
  (preprocess (pps ppx_deriving.show)))
 
 (env
