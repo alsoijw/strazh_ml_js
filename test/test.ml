@@ -43,7 +43,4 @@ let print_13() =
   Alcotest.(check string) "" (Printer.process "a[ b[c] ]++") "a[ g(b, c) ]++"
 
 let print_14() =
-  (*
-  Alcotest.(check string) "" (Printer.process "a = (b) => c(b)") "a[ g(b, c) ]++"
-  *)
-  Alcotest.(check string) "" (Printer.process "function a(b = c[d]) {}") "a[ g(b, c) ]++"
+  Alcotest.(check string) "" (Printer.process "function a(b = c[d]) {}") "function a(b = g(c, d)) {}"
