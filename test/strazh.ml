@@ -2,7 +2,7 @@ open Test
 
 let () =
   let open Alcotest in
-  run "TypeChecker" [
+  run "Sanitize" [
     "Print", [
       test_case "1" `Quick print_0;
       test_case "1" `Quick print_1;
@@ -20,4 +20,13 @@ let () =
       test_case "1" `Quick print_13;
       test_case "1" `Quick print_14;
     ];
+    "Search", [
+      test_case "1" `Quick search_0;
+      test_case "1" `Quick search_1;
+      test_case "1" `Quick search_2;
+      test_case "1" `Quick search_3;
+      test_case "1" `Quick search_4;
+      test_case "1" `Quick search_5;
+      test_case "1" `Quick search_6;
+    ]
   ]

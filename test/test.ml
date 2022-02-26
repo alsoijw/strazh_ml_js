@@ -1,4 +1,5 @@
 open Lib
+open Loc
 
 let print_0() =
   Alcotest.(check string) "" (Printer.process "c = arr  [ 0 ]; console('1'); d=arr[1]") "c = g(arr, 0); console('1'); d=g(arr, 1)"
@@ -44,3 +45,50 @@ let print_13() =
 
 let print_14() =
   Alcotest.(check string) "" (Printer.process "function a(b = c[d]) {}") "function a(b = g(c, d)) {}"
+
+let search_0() =
+  let list = Search.process "this.a = b" in
+  let v = [] in
+  Alcotest.(check string) "" (if v = list then "true" else "false") "true"
+
+let search_1() =
+  let list = Search.process "this['a'] = b" in
+  let v = [] in
+  Alcotest.(check string) "" (if v = list then "true" else "false") "true"
+
+let search_2() =
+  let list = Search.process "this[a] = b" in
+  let v = [
+    { source = None;
+      start = { line = 1; column = 0 };
+      _end = { line = 1; column = 4 } }
+  ] in
+  Alcotest.(check string) "" (if v = list then "true" else "false") "true"
+
+let search_3() =
+  let list = Search.process "a = this" in
+  let v = [ {
+      source = None;
+      start = { line = 1; column = 4 };
+      _end = { line = 1; column = 8 }
+    } ] in
+  Alcotest.(check string) "" (if v = list then "true" else "false") "true"
+
+let search_4() =
+  let list = Search.process "b = this.a" in
+  let v = [] in
+  Alcotest.(check string) "" (if v = list then "true" else "false") "true"
+
+let search_5() =
+  let list = Search.process "b = this['a']" in
+  let v = [] in
+  Alcotest.(check string) "" (if v = list then "true" else "false") "true"
+
+let search_6() =
+  let list = Search.process "b = this[a]" in
+  let v = [
+    { source = None;
+      start = { line = 1; column = 4 };
+      _end = { line = 1; column = 8 } }
+  ] in
+  Alcotest.(check string) "" (if v = list then "true" else "false") "true"

@@ -1,12 +1,16 @@
-open Loc
+type 'a visitor = {
+  expression2loc : (Loc.t, Loc.t) Flow_ast.Expression.t -> (Loc.t, Loc.t) Flow_ast.Expression.t' -> 'a;
+  pattern_tail : bool
+}
 
-let ast_walk fn code =
+let ast_walk visitor code =
   let rec array_pattern2loc = function
     | Flow_ast.Pattern.Array.Element (_, a) -> pattern2loc a.argument @ expression2loc_opt a.default
     | Flow_ast.Pattern.Array.RestElement (_, a) -> pattern2loc a.argument
     | Flow_ast.Pattern.Array.Hole _ -> []
   and pattern2loc i = match snd i with
-    | Flow_ast.Pattern.Expression e -> expression2loc_tail e
+    | Flow_ast.Pattern.Expression e ->
+      (if visitor.pattern_tail then expression2loc_tail else expression2loc) e
     | Flow_ast.Pattern.Identifier _ -> []
     | Flow_ast.Pattern.Array a -> List.map array_pattern2loc a.elements |> List.flatten
     | Flow_ast.Pattern.Object a -> List.map (fun i -> match i with
@@ -19,7 +23,7 @@ let ast_walk fn code =
         | Flow_ast.Pattern.Object.RestElement (_, b) -> pattern2loc b.argument
       ) a.properties |> List.flatten
   and expression2loc i =
-    let this_val = snd i |> fn i in
+    let this_val = snd i |> visitor.expression2loc i in
     match snd i with
     | Flow_ast.Expression.Array a -> List.map (function
         | Flow_ast.Expression.Array.Expression b -> expression2loc b
@@ -28,12 +32,12 @@ let ast_walk fn code =
         | Flow_ast.Expression.Array.Hole _ -> []
       ) a.elements |> List.flatten
     | Flow_ast.Expression.ArrowFunction a -> function2loc a
-    | Flow_ast.Expression.Assignment d -> pattern2loc d.left @ expression2loc d.right
+    | Flow_ast.Expression.Assignment d -> this_val :: pattern2loc d.left @ expression2loc d.right
     | Flow_ast.Expression.Binary a -> expression2loc a.left @ expression2loc a.right
     | Flow_ast.Expression.Call a -> expression2loc a.callee @ expression_arg_list2loc a.arguments
     | Flow_ast.Expression.Conditional a -> expression2loc a.test @ expression2loc a.consequent @ expression2loc a.alternate
     | Flow_ast.Expression.Function a -> function2loc a
-    | Flow_ast.Expression.Identifier _ -> []
+    | Flow_ast.Expression.Identifier _ -> [this_val]
     | Flow_ast.Expression.Literal _ -> []
     | Flow_ast.Expression.Logical a -> expression2loc a.left @ expression2loc a.right
     | Flow_ast.Expression.Member d -> (match d.property with
@@ -64,7 +68,7 @@ let ast_walk fn code =
           | Flow_ast.Expression.Object.SpreadProperty (_, a) -> expression2loc a.argument
         ) a.properties |> List.flatten
     | Flow_ast.Expression.TemplateLiteral a -> List.map expression2loc a.expressions |> List.flatten
-    | Flow_ast.Expression.This _ -> []
+    | Flow_ast.Expression.This _ -> [this_val]
     | Flow_ast.Expression.TypeCast a -> expression2loc a.expression
     | Flow_ast.Expression.Unary b -> (match b.operator with
         | Flow_ast.Expression.Unary.Delete -> expression2loc_tail b.argument

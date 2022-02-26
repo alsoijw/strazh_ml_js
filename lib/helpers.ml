@@ -12,3 +12,9 @@ let uniq i =
       | _ -> ()
     ) i;
   !o
+
+let parse code =
+  (Parser_flow.program code |> fst |> snd).statements
+
+let exclude a b =
+  List.filter (fun i -> not @@ List.exists (fun j -> i = j) b) a

@@ -1,4 +1,5 @@
 open Loc
+open Ast_walk
 
 type slice = {
   begin_ : int;
@@ -41,14 +42,11 @@ let rec split tree s_list =
         split v s_list)
   end
 
-let parse code =
-  (Parser_flow.program code |> fst |> snd).statements
-
-let process str =
-  let code = parse str in
+let process ?(debug = false) str =
+  let code = Helpers.parse str in
   let pp b = Flow_ast.Statement.show_t' Loc.pp Loc.pp (snd b) |> print_endline in
   let _pl i = Loc.show_position i |> print_endline in
-  if false then (
+  if debug then (
     List.iter pp code;
     List.length code |> Printf.printf "%d\n");
   (*
@@ -57,21 +55,20 @@ let process str =
   let line_lenght = String.split_on_char '\n' str |> List.map String.length in
   let str_tree = ref (Leaf ({begin_ = 0; end_ = String.length str }, str)) in
 
+  let fn = {
+    expression2loc = (fun i -> function
+        | Flow_ast.Expression.Member d -> (match d.property with
+            | Flow_ast.Expression.Member.PropertyIdentifier _ -> []
+            | Flow_ast.Expression.Member.PropertyPrivateName _ -> []
+            | Flow_ast.Expression.Member.PropertyExpression f -> [
+                (fst d._object).start;
+                (fst d._object)._end;
+                (fst f).start;
+                (fst f)._end;
+                (fst i)._end; ])
+        | _ -> []);
 
-  let fn = fun i -> function
-    | Flow_ast.Expression.Member d -> (match d.property with
-        | Flow_ast.Expression.Member.PropertyIdentifier _ -> []
-        | Flow_ast.Expression.Member.PropertyPrivateName _ -> []
-        | Flow_ast.Expression.Member.PropertyExpression f ->
-          [
-            (fst d._object).start;
-            (fst d._object)._end;
-            (fst f).start;
-            (fst f)._end;
-            (fst i)._end;
-          ] )
-    | _ -> [] in
-
+    pattern_tail = true } in
   let _ =
     List.iter (fun i -> Ast_walk.ast_walk fn i |> List.iter (fun i -> convert line_lenght i |> split str_tree)) code
   in
