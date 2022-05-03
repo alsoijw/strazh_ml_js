@@ -35,39 +35,59 @@ let ast_walk visitor code =
     | Flow_ast.Expression.Assignment d -> this_val :: pattern2loc d.left @ expression2loc d.right
     | Flow_ast.Expression.Binary a -> expression2loc a.left @ expression2loc a.right
     | Flow_ast.Expression.Call a -> expression2loc a.callee @ expression_arg_list2loc a.arguments
+    | Flow_ast.Expression.Class a ->
+      List.map (function
+          | Flow_ast.Class.Body.Method (_, b) ->
+            (expression_object_property b.key @
+             function2loc @@ snd b.value) @
+            (List.map (fun (_, i) ->
+                 let open Flow_ast.Class.Decorator in
+                 expression2loc i.expression
+               ) b.decorators |> List.flatten)
+            |> List.flatten
+          | Flow_ast.Class.Body.Property (_, b) -> []
+          | Flow_ast.Class.Body.PrivateField (_, b) -> []
+        ) (snd a.body).body
+    | Flow_ast.Expression.Comprehension a ->
+      (List.map expression_comprehension_block a.blocks |> List.flatten) @
+      expression2loc_opt a.filter
     | Flow_ast.Expression.Conditional a -> expression2loc a.test @ expression2loc a.consequent @ expression2loc a.alternate
     | Flow_ast.Expression.Function a -> function2loc a
+    | Flow_ast.Expression.Generator a ->
+      (List.map expression_comprehension_block a.blocks |> List.flatten) @
+      (match a.filter with
+       | Some v -> expression2loc v
+       | None -> [])
     | Flow_ast.Expression.Identifier _ -> [this_val]
+    | Flow_ast.Expression.Import a -> expression2loc a.argument
+    | Flow_ast.Expression.JSXElement a -> []
+    | Flow_ast.Expression.JSXFragment a -> []
     | Flow_ast.Expression.Literal _ -> []
     | Flow_ast.Expression.Logical a -> expression2loc a.left @ expression2loc a.right
-    | Flow_ast.Expression.Member d -> (match d.property with
-        | Flow_ast.Expression.Member.PropertyIdentifier _ -> []
-        | Flow_ast.Expression.Member.PropertyPrivateName _ -> []
-        | Flow_ast.Expression.Member.PropertyExpression f ->
-          this_val :: expression2loc d._object @ expression2loc f)
+    | Flow_ast.Expression.Member d -> expression_member2loc d this_val
+    | Flow_ast.Expression.MetaProperty _ -> []
     | Flow_ast.Expression.New a ->
       (match a.arguments with
        | Some (_, b) -> List.map expression_or_spread2loc b.arguments |> List.flatten
        | None -> []) @
       expression2loc a.callee
     | Flow_ast.Expression.Object a ->
-      let key2loc = function
-        | Flow_ast.Expression.Object.Property.Literal _ -> []
-        | Flow_ast.Expression.Object.Property.Identifier _ -> []
-        | Flow_ast.Expression.Object.Property.PrivateName _ -> []
-        | Flow_ast.Expression.Object.Property.Computed (_, b) -> expression2loc b.expression
-      in
       let property2loc = function
-        | Flow_ast.Expression.Object.Property.Init c -> key2loc c.key @ expression2loc c.value
-        | Flow_ast.Expression.Object.Property.Method c -> key2loc c.key @ function2loc (snd c.value)
-        | Flow_ast.Expression.Object.Property.Get c -> key2loc c.key @ function2loc (snd c.value)
-        | Flow_ast.Expression.Object.Property.Set c -> key2loc c.key @ function2loc (snd c.value)
+        | Flow_ast.Expression.Object.Property.Init c -> expression_object_property c.key @ expression2loc c.value
+        | Flow_ast.Expression.Object.Property.Method c -> expression_object_property c.key @ function2loc (snd c.value)
+        | Flow_ast.Expression.Object.Property.Get c -> expression_object_property c.key @ function2loc (snd c.value)
+        | Flow_ast.Expression.Object.Property.Set c -> expression_object_property c.key @ function2loc (snd c.value)
       in
       List.map (function
           | Flow_ast.Expression.Object.Property (_, a) -> property2loc a
           | Flow_ast.Expression.Object.SpreadProperty (_, a) -> expression2loc a.argument
         ) a.properties |> List.flatten
-    | Flow_ast.Expression.TemplateLiteral a -> List.map expression2loc a.expressions |> List.flatten
+    | Flow_ast.Expression.OptionalCall a -> expression_call2loc a.call
+    | Flow_ast.Expression.OptionalMember a -> expression_member2loc a.member this_val
+    | Flow_ast.Expression.Sequence a -> List.map expression2loc a.expressions |> List.flatten
+    | Flow_ast.Expression.Super _ -> []
+    | Flow_ast.Expression.TaggedTemplate a -> expression2loc a.tag @ expression_template_literal2loc (snd a.quasi)
+    | Flow_ast.Expression.TemplateLiteral a -> expression_template_literal2loc a
     | Flow_ast.Expression.This _ -> [this_val]
     | Flow_ast.Expression.TypeCast a -> expression2loc a.expression
     | Flow_ast.Expression.Unary b -> (match b.operator with
@@ -152,4 +172,19 @@ let ast_walk visitor code =
       let open Flow_ast.Statement.VariableDeclaration.Declarator in
       pattern2loc i.id @ expression2loc_opt i.init
     ) a.declarations |> List.flatten
+  and expression_template_literal2loc a = List.map expression2loc a.expressions |> List.flatten
+  and expression_call2loc a = expression2loc a.callee @ expression_arg_list2loc a.arguments
+  and expression_member2loc d this_val = (match d.property with
+      | Flow_ast.Expression.Member.PropertyIdentifier _ -> []
+      | Flow_ast.Expression.Member.PropertyPrivateName _ -> []
+      | Flow_ast.Expression.Member.PropertyExpression f ->
+        this_val :: expression2loc d._object @ expression2loc f)
+  and expression_comprehension_block (_, a) =
+    let open Flow_ast.Expression.Comprehension.Block in
+    pattern2loc a.left @ expression2loc a.right
+  and expression_object_property = function
+    | Flow_ast.Expression.Object.Property.Literal _ -> []
+    | Flow_ast.Expression.Object.Property.Identifier _ -> []
+    | Flow_ast.Expression.Object.Property.PrivateName _ -> []
+    | Flow_ast.Expression.Object.Property.Computed (_, b) -> expression2loc b.expression
   in snd code |> statement2loc
