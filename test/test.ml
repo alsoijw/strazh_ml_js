@@ -52,6 +52,9 @@ let print_15() =
 let print_16() =
   Alcotest.(check string) "" (Printer.process "a[b] = c") "a[b] = c"
 
+let print_17() =
+  Alcotest.(check string) "" (Printer.process ?debug:(Some true) "this[a]") "g(this, a, false)"
+
 let search_0() =
   let list = Search.process "this.a = b" in
   let v = [] in

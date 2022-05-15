@@ -21,6 +21,7 @@ let () =
       test_case "1" `Quick print_14;
       test_case "1" `Quick print_15;
       test_case "1" `Quick print_16;
+      test_case "1" `Quick print_17;
     ];
     "Search", [
       test_case "1" `Quick search_0;
