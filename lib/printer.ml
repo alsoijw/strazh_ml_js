@@ -14,11 +14,6 @@ type leaf =
 and tree = leaf ref
 [@@deriving show]
 
-let convert line_lenght =
-  List.map (fun i ->
-      List.mapi (fun n j -> if n < i.line - 1 then j + 1 else 0) line_lenght
-      |> List.fold_left (+) 0 |> (+) i.column)
-
 let rec split tree is_this s_list =
   if List.length s_list > 0 then begin
     match !tree with
@@ -79,7 +74,7 @@ let process ?(debug = false) str =
         Ast_walk.ast_walk fn i
         |> List.flatten
         |> List.iter (fun (i, is_this) ->
-            convert line_lenght i
+            Helpers.convert line_lenght i
             |> split str_tree is_this)) code
   in
   let rec join i = match !i with

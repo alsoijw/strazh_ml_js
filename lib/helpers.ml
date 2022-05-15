@@ -1,3 +1,5 @@
+open Loc
+
 let ext i =
   List.rev i
   |> List.fold_left (fun acc i -> match i with
@@ -18,3 +20,8 @@ let parse code =
 
 let exclude a b =
   List.filter (fun i -> not @@ List.exists (fun j -> i = j) b) a
+
+let convert line_lenght =
+  List.map (fun i ->
+      List.mapi (fun n j -> if n < i.line - 1 then j + 1 else 0) line_lenght
+      |> List.fold_left (+) 0 |> (+) i.column)
